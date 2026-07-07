@@ -1,39 +1,31 @@
-import type { IncomingMessage, ServerResponse } from 'http';
-
 // Vercel Serverless Function handler para Google AI API
-export default async function handler(req: IncomingMessage, res: ServerResponse) {
+export default async function handler(req: Request): Promise<Response> {
   // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
 
   if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    res.end();
-    return;
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
-    res.writeHead(405, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Method not allowed' }));
-    return;
+    return new Response(
+      JSON.stringify({ error: 'Method not allowed' }),
+      { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 
   try {
-    // Ler body
-    const body = await new Promise<string>((resolve, reject) => {
-      let data = '';
-      req.on('data', (chunk) => { data += chunk; });
-      req.on('end', () => resolve(data));
-      req.on('error', reject);
-    });
-
-    const { apiKey, messages, model, stream, maxTokens } = JSON.parse(body);
+    const { apiKey, messages, model, maxTokens } = await req.json();
 
     if (!apiKey) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'API key is required' }));
-      return;
+      return new Response(
+        JSON.stringify({ error: 'API key is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Chamar Google AI API (Gemini)
@@ -70,14 +62,18 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
       usage: data.usageMetadata || {},
     };
 
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(result));
+    return new Response(
+      JSON.stringify(result),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
     console.error('Google AI proxy error:', error);
-    res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Internal server error' 
-    }));
+    return new Response(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Internal server error' 
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 }
