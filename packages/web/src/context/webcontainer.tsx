@@ -1,5 +1,5 @@
 import { createContext, createSignal, useContext, onCleanup, JSX } from 'solid-js';
-import { WebContainer, auth, FileSystemTree } from '@webcontainer/api';
+import { WebContainer } from '@webcontainer/api';
 import { projectFiles } from '../utils/files';
 
 type WebContainerState = 'idle' | 'booting' | 'installing' | 'starting' | 'ready' | 'error';
@@ -14,8 +14,6 @@ interface WebContainerContextValue {
 }
 
 const WebContainerContext = createContext<WebContainerContextValue>();
-
-const WEBCONTAINER_CLIENT_ID = 'wc_api_mmdj04_2e0f9e10ae6cd9c3017f3ae5d4fd6b53';
 
 export function WebContainerProvider(props: { children: JSX.Element }) {
   const [state, setState] = createSignal<WebContainerState>('idle');
@@ -43,12 +41,6 @@ export function WebContainerProvider(props: { children: JSX.Element }) {
           'SharedArrayBuffer não disponível. Use Chrome ou Edge.'
         );
       }
-
-      // Inicializar autenticação (opcional para pacotes públicos)
-      auth.init({
-        clientId: WEBCONTAINER_CLIENT_ID,
-        scope: '',
-      });
 
       setProgress(20);
       setStatusMessage('Inicializando WebContainer...');
